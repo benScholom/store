@@ -64,6 +64,17 @@ def cat_list():
     except:
         return json.dumps({'STATUS':"ERROR", "MSG": "Internal error", "CODE": 500})
 
+@delete("/product/<id>")
+def del_prod(id):
+    try:
+        with connection.cursor() as cursor:
+            sql = "DELETE FROM products WHERE id = {}".format(id)
+            cursor.execute(sql)
+            return json.dumps({"STATUS": "SUCCESS", "MSG": "product deleted successfully", "CODE": 201})
+    except:
+        return json.dumps({"STATUS": "ERROR", "MSG": 'something went wrong'})
+
+
 @route("/category", method = "POST")
 def new_name():
     name = request.POST.get("name")
