@@ -22,7 +22,6 @@ def products():
             sql = "SELECT * FROM products"
             cursor.execute(sql)
             result = cursor.fetchall()
-            print(json.dumps(result))
             return json.dumps({"STATUS": "SUCCESS", "PRODUCTS": result, "CODE": 200})
     except:
         return json.dumps({'STATUS':"ERROR", "MSG": "Internal error", "CODE": 500})
@@ -46,7 +45,6 @@ def cat_prod_id(id):
             sql = "SELECT * FROM products where category  = {}".format(cat_id)
             cursor.execute(sql)
             result = cursor.fetchall()
-            print(json.dumps(result))
             return json.dumps({"STATUS": "SUCESS", "PRODUCTS": result, "CODE": 200})
     except:
         return json.dumps({'STATUS': "ERROR", "MSG": "Internal error", "CODE": 500})
@@ -58,8 +56,6 @@ def cat_list():
             sql = "SELECT * FROM categories"
             cursor.execute(sql)
             result = cursor.fetchall()
-            print(result)
-            print(json.dumps(result))
             return json.dumps({"STATUS": "SUCCESS", "CATEGORIES": result, "CODE": 200})
     except:
         return json.dumps({'STATUS':"ERROR", "MSG": "Internal error", "CODE": 500})
@@ -78,7 +74,6 @@ def del_prod(id):
 @route("/category", method = "POST")
 def new_name():
     name = request.POST.get("name")
-    print(name)
     try:
         with connection.cursor() as cursor:
             sql = "INSERT INTO categories (name) VALUES ('{}')".format(name)
@@ -114,13 +109,35 @@ def del_cat(id):
 @post('/product')
 def add_edit_pro():
     cat_id = request.POST.get('category')
-    description = request.POST.get('description')
+    description = request.POST.get('desc')
     price = request.POST.get('price')
     title = request.POST.get('title')
     favorite = request.POST.get('favorite')
     img_url = request.POST.get('img_url')
-    id = request.POST.get('id')
-
+    attributes = [cat_id, description, price, title, favorite, img_url]
+    for a in attributes:
+        if a == "":
+            return json.dumps({"STATUS": "ERROR", "MSG": 'please fill all fields'})
+    if favorite == 'on':
+        favorite = True;
+    else:
+        favorite = False;
+    try:
+        with connection.cursor() as cursor:
+            gid = "SELECT id FROM products WHERE title = '{}'".format(title)
+            cursor.execute(gid)
+            getid = cursor.fetchall()
+            if not cursor.rowcount:
+                sql = "INSERT INTO products (category, description, price, title, favorite, img_url) VALUES ({0},'{1}',{2},'{3}',{4},'{5}')".format(cat_id, description, price, title, favorite, img_url)
+                cursor.execute(sql)
+                return json.dumps({"STATUS": "SUCCESS", "MSG": "product created successfully", "CODE": 201})
+            elif cursor.rowcount:
+                sql2 = "UPDATE products SET category = {0}, description = '{1}', price = {2}, title = '{3}', favorite = {4}, img_url = '{5}' WHERE id = {6}".format(cat_id, description, price, title, favorite, img_url, int(getid[0]['id']))
+                print(sql2)
+                cursor.execute(sql2)
+                return json.dumps({"STATUS": "SUCCESS", "MSG": "product updated successfully", "CODE": 201})
+    except:
+        return json.dumps({"STATUS": "ERROR", "MSG": 'something went wrong'})
 
 
 @get("/")
