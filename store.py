@@ -1,3 +1,4 @@
+from _mysql_exceptions import *
 from bottle import route, run, template, static_file, get, post, delete, request
 from sys import argv
 import json
@@ -15,6 +16,7 @@ connection = pymysql.connect(host='sql11.freesqldatabase.com',
 def admin_portal():
 	return template("pages/admin.html")
 
+#products list
 @get("/products")
 def products():
     try:
@@ -25,7 +27,7 @@ def products():
             return json.dumps({"STATUS": "SUCCESS", "PRODUCTS": result, "CODE": 200})
     except:
         return json.dumps({'STATUS':"ERROR", "MSG": "Internal error", "CODE": 500})
-
+#specific product information
 @get("/product/<id>")
 def get_prod(id):
     try:
@@ -36,7 +38,7 @@ def get_prod(id):
             return json.dumps({'STATUS':"SUCCESS", "PRODUCT": result, "CODE": 200 })
     except:
         return json.dumps({'STATUS':"ERROR", "MSG": "Internal error", "CODE": 500})
-
+#viewing prodicts by category
 @get("/category/<id>/products")
 def cat_prod_id(id):
     cat_id = id
@@ -48,7 +50,7 @@ def cat_prod_id(id):
             return json.dumps({"STATUS": "SUCESS", "PRODUCTS": result, "CODE": 200})
     except:
         return json.dumps({'STATUS': "ERROR", "MSG": "Internal error", "CODE": 500})
-
+#viewing categories
 @get("/categories")
 def cat_list():
     try:
@@ -70,37 +72,34 @@ def del_prod(id):
     except:
         return json.dumps({"STATUS": "ERROR", "MSG": 'something went wrong'})
 
-
+#create a new category, test if category is already present and return specific error if so. Note that the name column is unique
 @route("/category", method = "POST")
 def new_name():
     name = request.POST.get("name")
+    if name == "":
+        return json.dumps({"STATUS":"ERROR", "MSG": 'Bad request'})
     try:
         with connection.cursor() as cursor:
             sql = "INSERT INTO categories (name) VALUES ('{}')".format(name)
             cursor.execute(sql)
-            result = cursor.lastrowid
-            """sql2 = "SELECT id FROM categories WHERE name = ('{}')".format(name)
-            result = cursor.execute(sql2)
-            print(result)"""
+            result = cursor.lastrowids
             return json.dumps({"STATUS":"SUCCESS", "CAT_ID": result, "CODE": 201})
+    #test to see if name already taken and ensure that one is entered to begin with
     except:
-        return json.dumps({"STATUS":"ERROR", "MSG": 'something went wrong'})
-    """except Exception as e:
-        if str(e) == '200':
-            return json.dumps({'STATUS':"ERROR", "MSG": "category already exists"})
-        elif str(e) == '400':
-            return json.dumps({'STATUS': "ERROR", "MSG": "bad request"})
-        elif str(e) == '500':
-            return json.dumps({'STATUS': "ERROR", "MSG": "internal error"})"""
-
+        return json.dumps({"STATUS":"ERROR", "MSG": 'Internal error'})
+    """ except IntegrityError:
+            return json.dumps({"STATUS":"ERROR", "MSG": 'Category name already taken'})
+        except Error:
+            return json.dumps({"STATUS":"ERROR", "MSG": 'Internal error'})"""
+#delete a category, also remove all products in that caeogry at the same time
 @delete('/category/<id>')
 def del_cat(id):
     cat_id = id
     try:
         with connection.cursor() as cursor:
-            sql2 = "DELETE FROM products WHERE Category = {}".format(cat_id)
+            sql2 = "DELETE FROM products WHERE category = {0}".format(cat_id)
             cursor.execute(sql2)
-            sql = "DELETE FROM categories WHERE id = {}".format(cat_id)
+            sql = "DELETE FROM categories WHERE id = {0}".format(cat_id)
             cursor.execute(sql)
             return json.dumps({"STATUS": "SUCCESS", "MSG": "category deleted successfully", "CODE": 201})
     except:
